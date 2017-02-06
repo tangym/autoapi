@@ -80,12 +80,17 @@ def handler(**kwargs):
                 function = module.__dict__[sql.split('.')[1]]
                 params = inspect.getargspec(function)[0]
                 param_values = get_param_value(params)
-                return json.dumps(function(**param_values), indent=2)
-            except TypeError:
-                # Not enough parameters 
+                for key in param_values:
+                    if key not in kwargs:
+                        kwargs[key] = param_values[key]
+                return json.dumps(function(**kwargs), indent=2)
+            except TypeError as e:
+                # Not enough parameters
+                print(e)
                 continue
-            except KeyError:
+            except KeyError as e:
                 # Undefined function or possibly a sql 
+                print(e)
                 pass
         # print(route, method, sql)
         params = re.findall(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', sql)
