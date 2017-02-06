@@ -1,0 +1,34 @@
+init:
+  db:
+    - DROP TABLE IF EXISTS demo
+    - CREATE TABLE demo (
+        id INTEGER PRIMARY KEY NOT NULL,
+        name TEXT,
+        age INTEGER,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+       )
+    - INSERT INTO demo (name, age) VALUES ("foo", 1)
+    - INSERT INTO demo (name, age) VALUES ("bar", 2)
+    - INSERT INTO demo (name, age, timestamp) VALUES ("bar", 3, DATETIME("1990-01-01 00:00:00"))
+  module:
+    - my_amazing_python_module
+api:
+  # Multiple routes and parameterized routes are allowed
+  # Multiple routes should separated by a comma and at least one blank space
+  /, /<int:id>:   
+    GET:
+      # Parameters should be in braces
+      # AutoAPI will choose the first one which could be fully parameterized
+      - SELECT * FROM demo WHERE (name={name}) AND (timestamp >= DATETIME({start})) AND (timestamp <= DATETIME({end}))
+      - SELECT * FROM demo WHERE name={name} AND age>{age}
+      # Module functions can also be mapped as api
+      # Notice the parameters will be converted to string
+      - my_amazing_python_module.some_function
+    POST:
+      - INSERT INTO demo (name, age) VALUES ({name}, {age})
+  # Repeated defination will be merged
+  # However, the order will not guaranteed
+  /<int:id>:
+    GET:
+      - SELECT * FROM demo WHERE id={id} AND name={name}
+      - SELECT * FROM demo
