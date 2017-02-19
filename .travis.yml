@@ -4,6 +4,7 @@ python:
   - 3.5
 install:
   - pip install -r requirements.txt
+  - pip install requests
 before_script:
   - python api.py &
 script: py.test
