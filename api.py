@@ -1,3 +1,4 @@
+import sys
 import json
 import re
 import inspect
@@ -7,7 +8,12 @@ from flask import Flask, request, abort
 import yaml
 from attrdict import AttrDict
 
-with open('config.yml') as f:
+config_file = 'sample_config.yml'
+if len(sys.argv) > 1:
+    if sys.argv[1]:
+        config_file = sys.argv[1]
+
+with open(config_file) as f:
     config = AttrDict(yaml.load(f))
 
 DB = 'db.sqlite'
