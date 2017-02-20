@@ -28,13 +28,14 @@ class Config(dict):
             self.join(config)
 
         # Find and join yaml files in api section
-        for route in self['api']:
-            if type(self['api'][route]) is str:
-                # self['api'][route] is a yaml file
-                config = Config(self['api'][route])
-                del self['api'][route]
-                for sroute in config['api']:
-                    self['api'][route+sroute] = config['api'][sroute]
+        route_with_yamls = {route for route in self['api']
+                            if type(self['api'][route]) is str}
+        for route in route_with_yamls:
+            # self['api'][route] is a yaml file
+            config = Config(self['api'][route])
+            del self['api'][route]
+            for sroute in config['api']:
+                self['api'][route+sroute] = config['api'][sroute]
         os.chdir(current_dir)
 
         for route in self['api']:
