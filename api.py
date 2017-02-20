@@ -7,19 +7,31 @@ import sqlite3
 from flask import Flask, request, abort
 import yaml
 from attrdict import AttrDict
+from configure import Config
+
+
+DB = 'db.sqlite'
+app = Flask(__name__)
 
 config_file = 'sample_config.yml'
 if len(sys.argv) > 1:
     if sys.argv[1]:
         config_file = sys.argv[1]
+config = AttrDict(Config(config_file))
 
-with open(config_file) as f:
-    config = AttrDict(yaml.load(f))
 
-DB = 'db.sqlite'
-app = Flask(__name__)
-init_sql = config.init.db
-init_module = config.init.module
+# Extract parameter values in requests
+def get_param_value(param_name):
+    result = {}
+    if type(param_name) is str:
+        param_name = [param_name]
+    for key in param_name:
+        value = request.args.get(key)
+        if request.json:
+            value = request.json.get(param_name) if not value else value
+        if value:
+            result[key] = value
+    return result
 
 def execute(sql, params=[]):
     conn = sqlite3.connect(DB)
@@ -54,79 +66,35 @@ def can_parameterize(sql, param):
     except KeyError:
         return False
 
-# Detect whether `string` refers to a function in custom modules
-def is_python_function(string):
-    for module in init_module:
-        if re.match(r'^%s\.[a-zA-Z_][a-zA-Z0-9_]*$' % module, string.strip()):
-            return True
-    return False
-
-# Extract parameter values in requests
-def get_param_value(param_name):
-    result = {}
-    if type(param_name) is str:
-        param_name = [param_name]
-    for key in param_name:
-        value = request.args.get(key)
-        if request.json:
-            value = request.json.get(param_name) if not value else value
-        if value:
-            result[key] = value
-    return result
-
-
 # Handle requests according to methods defined in config.api[route]
 def handler(**kwargs):
     route = request.url_rule.rule
     method = request.method
-    for sql in config.api[route][method]:
-        if is_python_function(sql):
-            module = importlib.import_module(sql.split('.')[0])
+    for action in config.api[route][method]:
+        if callable(action):
             try:
-                function = module.__dict__[sql.split('.')[1]]
-                params = inspect.getargspec(function)[0]
+                params = inspect.getargspec(action)[0]
                 param_values = get_param_value(params)
-                for key in param_values:
-                    if key not in kwargs:
-                        kwargs[key] = param_values[key]
-                return json.dumps(function(**kwargs), indent=2)
+                param_values.update(kwargs)
+                return json.dumps(action(**param_values), indent=2)
             except TypeError as e:
                 # Not enough parameters
                 print(e)
                 continue
-            except KeyError as e:
-                # Undefined function or possibly a sql 
-                print(e)
-                pass
-        # print(route, method, sql)
-        params = re.findall(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', sql)
-        # remove `{` and `}`
-        params = [param[1:-1] for param in params]
-        param_values = get_param_value(params)
-        for key in param_values:
-            if key not in kwargs:
-                kwargs[key] = param_values[key]
-        if can_parameterize(sql, kwargs):
-            keys = [key[1:-1] for key in re.findall(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', sql)]
-            values = [kwargs[key] for key in keys]
-            sql = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', '?', sql)
-            result = execute(sql, values)
-            return json.dumps(result, indent=2)
-    return json.dumps({'msg': 'Insufficient parameters.'}, indent=2)
-        
-# Parse multiple routes in one rule
-api = {}
-for url in config.api:
-    routes = re.split(r',\s+', url)
-    for route in routes:
-        route = route.strip()
-        if route not in api:
-            api[route] = {}
-        for method in config.api[url]:
-            if method not in api[route]:
-                api[route][method] = []
-            api[route][method] += config.api[url][method]
-config.update({'api': api})
+        elif type(action) is str:
+            params = re.findall(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', action)
+            # remove `{` and `}`
+            params = [param[1:-1] for param in params]
+            param_values = get_param_value(params)
+            param_values.update(kwargs)
+            if can_parameterize(action, param_values):
+                keys = [key[1:-1] for key in re.findall(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', action)]
+                values = [param_values[key] for key in keys]
+                sql = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', '?', action)
+                result = execute(sql, values)
+                return json.dumps(result, indent=2)
+    abort(404)
+
 
 # Add url rule for each route
 for route in config.api:
@@ -136,9 +104,6 @@ for route in config.api:
 
 
 if __name__ == "__main__":
-    execute(init_sql)
-    for module in init_module:
-        importlib.import_module(module)
+    execute(config.init.db)
     app.run(host='0.0.0.0', debug=True)
     pass
-
