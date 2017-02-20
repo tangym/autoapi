@@ -8,7 +8,7 @@ def test_root_404():
 def test_root():
     params = {'name': 'foo', 'age': 2}
     r = requests.get('http://localhost:5000', params=params)
-    assert r.json() is None
+    assert r.json() == []
 
 def test_id():
     r = requests.get('http://localhost:5000/1')
