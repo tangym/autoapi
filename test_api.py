@@ -12,5 +12,6 @@ def test_root():
 
 def test_id():
     r = requests.get('http://localhost:5000/1')
-    ids = [item['id'] for item in r.json()].sort()
+    ids = [item['id'] for item in r.json()]
+    ids.sort()
     assert ids == [1, 2, 3]
