@@ -19,7 +19,6 @@ if len(sys.argv) > 1:
         config_file = sys.argv[1]
 config = AttrDict(Config(config_file))
 
-
 # Extract parameter values in requests
 def get_param_value(param_name):
     result = {}

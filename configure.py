@@ -1,6 +1,7 @@
 import json
 import re
 import os
+import sys
 import inspect
 import importlib
 import yaml
@@ -18,12 +19,22 @@ class Config(dict):
         with open(config_file) as f:
             self.update(yaml.load(f))
         self.update(Config.fill_default_configs(self, default))
-        
+
+        sys.path.append(os.getcwd())
         self['init']['module'] = [importlib.import_module(module) 
-                            for module in self['init']['module']]
+                                  for module in self['init']['module']]
         configs = [Config(yml) for yml in self['init']['yaml']]
         for config in configs:
             self.join(config)
+
+        # Find and join yaml files in api section
+        for route in self['api']:
+            if type(self['api'][route]) is str:
+                # self['api'][route] is a yaml file
+                config = Config(self['api'][route])
+                del self['api'][route]
+                for sroute in config['api']:
+                    self['api'][route+sroute] = config['api'][sroute]
         os.chdir(current_dir)
 
         for route in self['api']:
@@ -49,6 +60,8 @@ class Config(dict):
                                              
     # Detect whether `string` refers to a function in custom modules
     def get_python_function(self, string):
+        if type(string) is not str:
+            return string
         if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*\.[a-zA-Z_][a-zA-Z0-9_]*$', 
                         string.strip()):
             return string
