@@ -27,7 +27,7 @@ def get_param_value(param_name):
     for key in param_name:
         value = request.args.get(key)
         if request.json:
-            value = request.json.get(param_name) if not value else value
+            value = request.json.get(key) if not value else value
         if value:
             result[key] = value
     return result
