@@ -12,6 +12,9 @@ init:
     - INSERT INTO demo (name, age, timestamp) VALUES ("bar", 3, DATETIME("1990-01-01 00:00:00"))
   module:
     - my_amazing_python_module
+  # Specify other configuration files whose `init` part will also be included
+  yaml:
+    - config.yml
 api:
   # Multiple routes and parameterized routes are allowed
   # Multiple routes should separated by a comma and at least one blank space
