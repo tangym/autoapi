@@ -1,9 +1,10 @@
 import pytest
 import requests
 
-def test_root_404():
+def test_root_200():
     r = requests.get('http://localhost:5000')
-    assert r.status_code == 404
+    assert r.status_code == 200
+    assert set(r.json()) == {'/', '/<int:id>'}
 
 def test_root():
     params = {'name': 'foo', 'age': 2}
