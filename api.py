@@ -92,7 +92,8 @@ def handler(**kwargs):
                 sql = re.sub(r'\{[a-zA-Z_][a-zA-Z0-9_]*\}', '?', action)
                 result = execute(sql, values)
                 return json.dumps(result, indent=2)
-    abort(404)
+    return json.dumps(list(
+                filter(lambda url: url.startswith(route), set(config.api))))
 
 
 # Add url rule for each route
