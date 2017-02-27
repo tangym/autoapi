@@ -16,8 +16,12 @@ class Config(dict):
 
         os.chdir(os.path.split(config_file)[0])
         default = {'init': {'db': [], 'module': [], 'yaml': []}, 'api': {}}
-        with open(config_file) as f:
-            self.update(yaml.load(f))
+        try:
+            with open(config_file) as f:
+                self.update(yaml.load(f))
+        except FileNotFoundError as fnfe:
+            print('Configuration file not found: %s' % config_file)
+            print('Use default configuration instead.')
         self.update(Config.fill_default_configs(self, default))
 
         sys.path.append(os.getcwd())
