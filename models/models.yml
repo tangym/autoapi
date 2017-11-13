@@ -1,0 +1,11 @@
+init:
+  module:
+    - gauss
+api:
+  /gauss:
+    GET:
+      - gauss.generate_gauss_sample
+      - gauss.gauss_pdf
+  /gauss/pdf:
+    GET:
+      - gauss.gauss_pdf

@@ -1,0 +1,14 @@
+init:
+  module:
+    - shorten_url
+api:
+  /:
+    GET:
+      - shorten_url.encodeUrl
+  /<string:surl>:
+    GET:
+      - shorten_url.decodeUrl
+  /clear:
+    GET:
+      - shorten_url.clear
+

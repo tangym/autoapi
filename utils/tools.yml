@@ -1,0 +1,10 @@
+init:
+  module:
+    - tools
+api:
+  /:
+    GET:
+      - tools.add
+  /<int:a>:
+    GET:
+      - tools.add
